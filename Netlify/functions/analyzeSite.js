@@ -5,7 +5,7 @@ exports.handler = async function(event, context) {
         return {
             statusCode: 204,
             headers: {
-                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Origin": "https://websitebrush.com",
                 "Access-Control-Allow-Methods": "POST, GET, PUT, DELETE",
                 "Access-Control-Allow-Headers": "Content-Type"
             },
@@ -43,7 +43,7 @@ exports.handler = async function(event, context) {
      return {
         statusCode: 200,
         headers: {
-            "Access-Control-Allow-Origin": "*", // Make sure CORS header is set
+            "Access-Control-Allow-Origin": "https://websitebrush.com", // Make sure CORS header is set
             "Content-Type": "application/json"
         },
         body: JSON.stringify(data)  // Modify this to extract only necessary details
