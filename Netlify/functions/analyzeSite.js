@@ -1,14 +1,15 @@
 const fetch = require('node-fetch');
 
 exports.handler = async function(event, context) {
-    if (event.httpMethod !== "POST") {
-        return { 
-            statusCode: 405, 
-            headers: { 
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*" 
+    if (event.httpMethod === "OPTIONS") {
+        return {
+            statusCode: 204,
+            headers: {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "POST, GET, PUT, DELETE",
+                "Access-Control-Allow-Headers": "Content-Type"
             },
-            body: "Method Not Allowed" 
+            body: "" // No body for an OPTIONS request
         };
     }
 
@@ -39,4 +40,12 @@ exports.handler = async function(event, context) {
             body: JSON.stringify({ error: "Failed fetching data from Google PageSpeed Insights." })
         };
     }
+     return {
+        statusCode: 200,
+        headers: {
+            "Access-Control-Allow-Origin": "*", // Make sure CORS header is set
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data)  // Modify this to extract only necessary details
+    };
 };
