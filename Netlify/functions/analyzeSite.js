@@ -1,18 +1,52 @@
 const fetch = require('node-fetch');
 
 exports.handler = async function(event, context) {
-    const { websiteURL } = JSON.parse(event.body);
+    // Ensure you're dealing with a POST request
+    if (event.httpMethod !== 'POST') {
+        return {
+            statusCode: 405,
+            body: JSON.stringify({ error: 'Method Not Allowed' })
+        };
+    }
 
-    const API_KEY = process.env.PAGESPEED_API_KEY;  // Store your API key in Netlify's environment variables
+    let websiteURL;
+    try {
+        const body = JSON.parse(event.body);
+        websiteURL = body.websiteURL;
+    } catch (error) {
+        return {
+            statusCode: 400,
+            body: JSON.stringify({ error: 'Invalid input format' })
+        };
+    }
+
+    const API_KEY = process.env.PAGESPEED_API_KEY;  // Fetch the API key from Netlify's environment variables
     const endpoint = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${websiteURL}&key=${API_KEY}`;
 
-    const response = await fetch(endpoint);
-    const data = await response.json();
+    let data;
+    try {
+        const response = await fetch(endpoint);
+        data = await response.json();
+    } catch (error) {
+        return {
+            statusCode: 500,
+            body: JSON.stringify({ error: 'Error fetching data from PageSpeed Insights API' })
+        };
+    }
 
-    // Extract necessary information from the data object and send it back
+    // Check if the API returned an error
+    if (data.error) {
+        return {
+            statusCode: 500,
+            body: JSON.stringify({ error: data.error.message })
+        };
+    }
+
+    // Extract the necessary information from the data object
+    const score = data.lighthouseResult.categories.performance.score * 100;
 
     return {
         statusCode: 200,
-        body: JSON.stringify(data)  // Modify this to extract only necessary details
+        body: JSON.stringify({ score })
     };
 }
