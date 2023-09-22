@@ -1,52 +1,39 @@
 const fetch = require('node-fetch');
 
 exports.handler = async function(event, context) {
-    // Ensure you're dealing with a POST request
-    if (event.httpMethod !== 'POST') {
-        return {
-            statusCode: 405,
-            body: JSON.stringify({ error: 'Method Not Allowed' })
-        };
-    }
+    const { websiteURL } = JSON.parse(event.body);
+    const PAGESPEED_API_KEY = process.env.PAGESPEED_API_KEY;  // Store your PageSpeed API key in Netlify's environment variables
 
-    let websiteURL;
-    try {
-        const body = JSON.parse(event.body);
-        websiteURL = body.websiteURL;
-    } catch (error) {
-        return {
-            statusCode: 400,
-            body: JSON.stringify({ error: 'Invalid input format' })
-        };
-    }
+    const pageSpeedEndpoint = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${websiteURL}&key=${PAGESPEED_API_KEY}`;
+    const mobileFriendlyEndpoint = `https://searchconsole.googleapis.com/v1/urlTestingTools/mobileFriendlyTest:run?key=${PAGESPEED_API_KEY}`; // We're assuming you're using the same API key for both services.
 
-    const API_KEY = process.env.PAGESPEED_API_KEY;  // Fetch the API key from Netlify's environment variables
-    const endpoint = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${websiteURL}&key=${API_KEY}`;
+    // Fetch PageSpeed Insights
+    const pageSpeedResponse = await fetch(pageSpeedEndpoint);
+    const pageSpeedData = await pageSpeedResponse.json();
 
-    let data;
-    try {
-        const response = await fetch(endpoint);
-        data = await response.json();
-    } catch (error) {
-        return {
-            statusCode: 500,
-            body: JSON.stringify({ error: 'Error fetching data from PageSpeed Insights API' })
-        };
-    }
+    // Fetch Mobile Friendly Test
+    const mobileFriendlyResponse = await fetch(mobileFriendlyEndpoint, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            url: websiteURL
+        })
+    });
+    const mobileFriendlyData = await mobileFriendlyResponse.json();
 
-    // Check if the API returned an error
-    if (data.error) {
-        return {
-            statusCode: 500,
-            body: JSON.stringify({ error: data.error.message })
-        };
-    }
+    // Extract necessary information
+    const speedScore = pageSpeedData.lighthouseResult.categories.performance.score * 100; // Score is between 0 and 1, hence multiplied by 100.
+    const mobileFriendlyStatus = mobileFriendlyData.mobileFriendliness;
 
-    // Extract the necessary information from the data object
-    const score = data.lighthouseResult.categories.performance.score * 100;
+    const result = {
+        speedScore: speedScore,
+        mobileFriendly: mobileFriendlyStatus
+    };
 
     return {
         statusCode: 200,
-        body: JSON.stringify({ score })
+        body: JSON.stringify(result)
     };
-}
+};
